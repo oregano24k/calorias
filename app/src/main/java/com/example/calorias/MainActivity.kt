@@ -1,6 +1,5 @@
 package com.example.calorias
 
-// --- ERROR CORREGIDO AQUÍ ---
 import android.content.ContentResolver
 import android.net.Uri
 import android.os.Bundle
@@ -37,6 +36,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri // <-- IMPORT AÑADIDO PARA LA MEJORA
 import coil.compose.AsyncImage
 import com.example.calorias.ui.theme.CaloriasTheme
 
@@ -54,10 +54,8 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun MainScreen(modifier: Modifier = Modifier) {
     val context = LocalContext.current
-    // 1. Reintroducimos el estado para guardar la URI de la imagen
     var imageUri by remember { mutableStateOf<Uri?>(null) }
 
-    // Usamos un Box para mantener el fondo blanco consistente
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -65,10 +63,8 @@ fun MainScreen(modifier: Modifier = Modifier) {
             .padding(16.dp),
         contentAlignment = Alignment.Center
     ) {
-        // 2. Reintroducimos la lógica condicional
         if (imageUri == null) {
             // --- PANTALLA INICIAL ---
-            // Columna para organizar los elementos de la pantalla principal
             Column(
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
@@ -101,19 +97,17 @@ fun MainScreen(modifier: Modifier = Modifier) {
                 }
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // 3. Reintroducimos el botón "Cargar Logo"
                 Button(onClick = {
-                    val resourceId = R.drawable.logo // Esta línea causa un 'crash' si 'logo.jpg' no existe en res/drawable
-                    imageUri = Uri.parse(
-                        "${ContentResolver.SCHEME_ANDROID_RESOURCE}://${context.packageName}/$resourceId"
-                    )
+                    val resourceId = R.drawable.logo
+                    // --- MEJORA APLICADA AQUÍ ---
+                    // Usamos .toUri() en lugar de Uri.parse()
+                    imageUri = "${ContentResolver.SCHEME_ANDROID_RESOURCE}://${context.packageName}/$resourceId".toUri()
                 }) {
                     Text("Cargar Logo")
                 }
             }
         } else {
             // --- PANTALLA DE VISUALIZACIÓN DE IMAGEN ---
-            // Columna para mostrar la imagen cargada
             Column(
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
