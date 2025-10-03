@@ -1,13 +1,16 @@
 package com.example.calorias
 
+// --- ERROR CORREGIDO AQUÍ ---
+import android.content.ContentResolver
 import android.net.Uri
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,7 +20,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -26,12 +28,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage // Import correcto para Coil
+import coil.compose.AsyncImage
 import com.example.calorias.ui.theme.CaloriasTheme
 
 class MainActivity : ComponentActivity() {
@@ -39,120 +45,100 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             CaloriasTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    FoodScannerScreen(
-                        modifier = Modifier.padding(innerPadding)
+                MainScreen(modifier = Modifier.fillMaxSize())
+            }
+        }
+    }
+}
+
+@Composable
+fun MainScreen(modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    // 1. Reintroducimos el estado para guardar la URI de la imagen
+    var imageUri by remember { mutableStateOf<Uri?>(null) }
+
+    // Usamos un Box para mantener el fondo blanco consistente
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(Color.White)
+            .padding(16.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        // 2. Reintroducimos la lógica condicional
+        if (imageUri == null) {
+            // --- PANTALLA INICIAL ---
+            // Columna para organizar los elementos de la pantalla principal
+            Column(
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.background_shark),
+                    contentDescription = "Logo de fondo",
+                    modifier = Modifier
+                        .size(250.dp)
+                        .blur(radius = 1.dp)
+                        .alpha(0.2f)
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Text(
+                    text = "Version 1.0",
+                    style = MaterialTheme.typography.headlineLarge,
+                    color = Color.Black
+                )
+
+                Spacer(modifier = Modifier.height(48.dp))
+
+                Button(onClick = { Toast.makeText(context, "Hola", Toast.LENGTH_SHORT).show() }) {
+                    Text("Saludar")
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(onClick = { Toast.makeText(context, "Buenas Noches", Toast.LENGTH_SHORT).show() }) {
+                    Text("Despedirse")
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // 3. Reintroducimos el botón "Cargar Logo"
+                Button(onClick = {
+                    val resourceId = R.drawable.logo // Esta línea causa un 'crash' si 'logo.jpg' no existe en res/drawable
+                    imageUri = Uri.parse(
+                        "${ContentResolver.SCHEME_ANDROID_RESOURCE}://${context.packageName}/$resourceId"
                     )
+                }) {
+                    Text("Cargar Logo")
+                }
+            }
+        } else {
+            // --- PANTALLA DE VISUALIZACIÓN DE IMAGEN ---
+            // Columna para mostrar la imagen cargada
+            Column(
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                AsyncImage(
+                    model = imageUri,
+                    contentDescription = "Logo cargado",
+                    modifier = Modifier
+                        .size(250.dp)
+                        .clip(RoundedCornerShape(12.dp)),
+                    contentScale = ContentScale.Crop
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(onClick = { imageUri = null }) {
+                    Text("Volver")
                 }
             }
         }
     }
 }
 
-@Composable
-fun FoodScannerScreen(modifier: Modifier = Modifier) {
-    val context = LocalContext.current
-    var imageUri by remember { mutableStateOf<Uri?>(null) }
-
-    val galleryLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent(),
-        onResult = { uri ->
-            imageUri = uri
-        }
-    )
-
-    Column(
-        modifier = modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        // Si no hay ninguna imagen seleccionada, mostramos los botones
-        if (imageUri == null) {
-            Text(
-                text = "Calculadora de Calorías",
-                style = MaterialTheme.typography.headlineMedium
-            )
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            Button(onClick = {
-                Toast.makeText(context, "Abriendo cámara...", Toast.LENGTH_SHORT).show()
-            }) {
-                Text("Tomar Foto")
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Button(onClick = {
-                galleryLauncher.launch("image/*")
-            }) {
-                Text("Elegir de la Galería")
-            }
-
-            // --- CÓDIGO DEL BOTÓN "SALUDAR" ---
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Button(onClick = {
-                // La acción del nuevo botón: mostrar el mensaje "Hola"
-                Toast.makeText(context, "Hola", Toast.LENGTH_SHORT).show()
-            }) {
-                Text("Saludar")
-            }
-            // ---------------------------------
-
-            // --- INICIO DEL NUEVO BOTÓN "BUENAS NOCHES" ---
-            Spacer(modifier = Modifier.height(16.dp)) // Espacio para separar del botón anterior
-
-            Button(onClick = {
-                // Acción: Mostrar el mensaje "Buenas Noches"
-                Toast.makeText(context, "Buenas Noches", Toast.LENGTH_SHORT).show()
-            }) {
-                Text("Despedirse") // Texto del botón
-            }
-            // --- FIN DEL NUEVO BOTÓN ---
-
-
-        } else {
-            // Si SÍ hay una imagen, la mostramos y damos nuevas opciones
-            Text(
-                text = "Analizando Comida...",
-                style = MaterialTheme.typography.headlineMedium
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            AsyncImage(
-                model = imageUri,
-                contentDescription = "Imagen de comida seleccionada",
-                modifier = Modifier
-                    .size(250.dp)
-                    .clip(RoundedCornerShape(12.dp)),
-                contentScale = ContentScale.Crop
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Button(onClick = {
-                Toast.makeText(context, "Analizando...", Toast.LENGTH_SHORT).show()
-            }) {
-                Text("Calcular Calorías")
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Button(onClick = { imageUri = null }) {
-                Text("Elegir otra imagen")
-            }
-        }
-    }
-}
-
-// --- ESTA ES LA PARTE QUE FALTABA ---
 @Preview(showBackground = true)
 @Composable
-fun FoodScannerScreenPreview() {
+fun MainScreenPreview() {
     CaloriasTheme {
-        FoodScannerScreen()
+        MainScreen()
     }
 }
-// ------------------------------------
